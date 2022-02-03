@@ -1,0 +1,14 @@
+## Author
+- **Name:** Junyuan Zhang
+- **e-mail:** junyuan6@illinois.edu
+
+## Purpose
+<p> Show the trend of the new cases or test cases vs date for Covid 19 data.
+User Can choose the case type like all cases, undergraduate cases, graduate cases or faculty cases. Also, user can choose the given date from 2020,08,17 until 2021,11,17.
+The plot will show the trend for given period accordingly </p>
+
+## Data
+illinois_shield_covid_data.csv file
+
+## Reference
+RStudio Cheatsheets
