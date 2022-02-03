@@ -1,0 +1,125 @@
+---
+title: "Case study"
+author: "Junyuan Zhang"
+date: "10/21/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+<h1>Introduction</h1>
+<p>In this case study, we want to investigate the association between alcohol  level of ”Vinho Verde” wine and  physio-chemical information. The predictor included in our full model are: </p>
+
+<ol>
+  <li>fixed acidity</li>
+  <li>volatile acidity</li>
+  <li>citric acid</li>
+  <li>residual sugar</li>
+  <li>chlorides</li>
+  <li>free sulfur dioxide</li>
+  <li>total sulfur dioxide</li>
+  <li>density</li>
+  <li>pH</li>
+  <li>sulphates</li>
+</ol>
+```{r cars}
+library(ggplot2)
+library(faraway)
+redwines <- read.csv("redwines.csv", header = TRUE)
+dim(redwines)
+redwines = redwines[, - 12] #drop the quality
+redwines.full = lm(alcohol ~.,data = redwines)
+summary(redwines.full)
+```
+
+<p> We first fit the full model that contains all predictors. By looking at the Anova table, we found that the free sulfur dioxide predictor is insignificant since its p-value is much greater than 0.05. Thus we need consider drop this predictor </p>
+
+```{r}
+redwines.reduced = lm(alcohol ~ fixed.acidity +
+    volatile.acidity + citric.acid + residual.sugar + 
+    chlorides + total.sulfur.dioxide + 
+    density + pH + sulphates, data = redwines) # drop free_sulfur_dioxide
+
+anova(redwines.reduced, redwines.full)
+# don't reject null so reduced model is better
+```
+<p> We fit a new model called redwines.reduced above without the free sulfur dioxide. We made the hyphothesis that $H_0 :$ reduced model is better, $H_a:$ full model is needed. Also, by looking the anova table above, the $p$ value is larger than 0.05. Thus we do not reject the null hypothesis that reduced model is better. We confirm that can drop free sulfur dioxide predictor. The reduced model will be used in following analysis</p>
+
+
+```{r}
+#B outlier test
+summary(redwines.reduced)
+```
+<p> The reduced model above now has all predictors significant </p>
+
+```{r}
+n = dim(redwines)[1]
+p = 10 # droped 1
+critical = qt(.05/(2*n), n-p-1)
+redwines.resid = rstudent(redwines.reduced)
+
+sort(abs(redwines.resid), decreasing = TRUE)[1:10]
+# no outliers
+```
+
+
+``` {r}
+# high leverage
+lev = lm.influence(redwines.reduced)$hat
+head(lev)
+
+leverages = lev[lev>(2*p/n)]
+head(leverages)
+
+length(leverages) / n # 7 percent of points are high leverage
+halfnorm(lev, 6, labs=as.character(1:length(lev)), ylab = "Leverages")
+```
+
+```{r}
+# constant variance
+plot(redwines.reduced, which =1)
+library(lmtest)
+bptest(redwines.reduced)
+# reject const variance
+```
+
+```{r}
+# normality
+plot(redwines.reduced, which =  2)
+hist(redwines.reduced$residuals)
+ks.test(residuals(redwines.reduced), y = pnorm)
+# reject normality
+```
+
+```{r}
+# box transformation
+
+library(MASS)
+redwines.boxcox = boxcox(redwines.reduced, lambda=seq(-2, 2, length=400))
+lambda = redwines.boxcox$x[redwines.boxcox$y == max(redwines.boxcox$y)]
+
+redwines$alcohol.new = ((redwines$alcohol)^lambda - 1) / lambda
+
+redwines.transform = lm(alcohol.new ~ fixed.acidity +
+    volatile.acidity + citric.acid + residual.sugar + 
+    chlorides + total.sulfur.dioxide + 
+    density + pH + sulphates, data = redwines)
+
+summary(redwines.transform)
+```
+
+```{r}
+plot(redwines.transform, which = 1)
+bptest(redwines.transform)
+hist(redwines.transform$residuals)
+```
+
+```{r}
+ks.test(residuals(redwines.transform), y=pnorm)
+plot(redwines.transform, which=2)
+```
